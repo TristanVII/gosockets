@@ -36,10 +36,10 @@
     </div>
     <script>
       var selectedChat = "general";
+      var WS = new WebSocket("ws://" + document.location.host + "/ws");
       function changeChatRoom() {
         var newChat = document.getElementById("chatroom");
         if (newChat !== null && newChat.value !== selectedChat) {
-          console.log(newChat.value);
         }
         return false;
       }
@@ -47,7 +47,7 @@
       function sendMessages() {
         var newMessage = document.getElementById("message");
         if (newMessage !== null) {
-          console.log(newMessage.value);
+          WS.send(JSON.stringify({ message: "test" }));
         }
         return false;
       }
@@ -55,14 +55,6 @@
       window.onload = function () {
         document.getElementById("chatroom-selection").onsubmit = changeChatRoom;
         document.getElementById("user-messages").onsubmit = sendMessages;
-        console.log(window["WebSocket"]);
-        if (window["WebSocket"]) {
-          console.log("Supports websockets");
-          var ws = new WebSocket("ws://" + document.location.host + "/ws");
-          console.log(ws);
-        } else {
-          alert("Browser not support WS");
-        }
       };
     </script>
   </body>

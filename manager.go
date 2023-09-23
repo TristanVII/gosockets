@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -19,12 +20,36 @@ var (
 
 // Manager is used to hold references to all Clients Registered, and Broadcasting etc
 type Manager struct {
+	clients ClientList
+	sync.RWMutex
 }
 
 // NewManager is used to initalize all the values inside the manager
 func NewManager() *Manager {
-	return &Manager{}
+	return &Manager{
+		clients: make(ClientList),
+	}
 }
+
+
+func (m *Manager) addClient(c *Client) {
+	m.Lock()
+	defer m.Unlock()
+	
+	m.clients[c] = true
+}
+
+func (m *Manager) removeClient(c *Client) {
+	m.Lock()
+	defer m.Unlock()
+	
+	if _, ok := m.clients[c]; ok {
+		c.connection.Close()
+		// delete from the map the client
+		delete(m.clients, c)
+	}
+}
+
 
 // serveWS is a HTTP Handler that the has the Manager that allows connections
 func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +61,12 @@ func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	// We wont do anything yet so close connection again
-	conn.Close()
+	// Create a new client to manage WS conn
+	client := NewClientFactory(conn, m)
+
+	m.addClient(client) 
+
+	// Start client processes
+	go client.readMessages()
+	// go client.writeMessages()
 }
